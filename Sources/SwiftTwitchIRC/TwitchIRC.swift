@@ -36,7 +36,13 @@ public struct SwiftTwitchIRC {
         joinChannel(channel: username)
     }
     
-    mutating public func disconnect() {
+    func connect() {
+        send("PASS oauth:\(token)")
+        send("NICK \(username)")
+        send("CAP REQ :twitch.tv/commands twitch.tv/tags")
+    }
+    
+    public func disconnect() {
         connection.cancel()
     }
     
@@ -84,12 +90,6 @@ public struct SwiftTwitchIRC {
     
     public func sendWhisper(message: String, to userName: String) {
         send("PRIVMSG #\(userName) :/w \(userName) \(message)")
-    }
-    
-    func connect() {
-        send("PASS oauth:\(token)")
-        send("NICK \(username)")
-        send("CAP REQ :twitch.tv/commands twitch.tv/tags")
     }
     
     mutating public func joinChannel(channel: String) {

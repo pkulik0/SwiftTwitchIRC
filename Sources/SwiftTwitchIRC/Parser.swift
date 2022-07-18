@@ -12,7 +12,7 @@ public extension SwiftTwitchIRC {
         
         var userID: String
         var userName: String
-        var badges: [String]
+        var badges: [String: Int]
         var color: String
         
         var text: String
@@ -21,7 +21,7 @@ public extension SwiftTwitchIRC {
     func parseData(message: String) -> ChatMessage? {
         var message = message
         var index = message.startIndex
-        var chatMessage = ChatMessage(id: "", channel: "", userID: "", userName: "", badges: [], color: "", text: "")
+        var chatMessage = ChatMessage(id: "", channel: "", userID: "", userName: "", badges: [:], color: "", text: "")
         
         if message[index] == "@" {
             index = message.firstIndex(of: " ") ?? message.startIndex
@@ -71,7 +71,12 @@ public extension SwiftTwitchIRC {
             
             switch(tagName) {
             case "badges":
-                messageData.badges = tagContent.split(separator: ",").map({ String($0) })
+                tagContent.split(separator: ",").forEach { badgeInfo in
+                    let badgeInfo = badgeInfo.split(separator: "/")
+                    let badgeName = String(badgeInfo[0])
+                    let badgeLevel = Int(badgeInfo[1])
+                    messageData.badges[badgeName] = badgeLevel
+                }
             case "color":
                 messageData.color = String(tagContent)
             case "display-name":

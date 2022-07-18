@@ -33,10 +33,10 @@ public struct SwiftTwitchIRC {
         
         read()
         connect()
-        joinChannel(channel: "adamcy_")
+        joinChannel(channel: username)
     }
     
-    mutating func disconnect() {
+    mutating public func disconnect() {
         connection.cancel()
     }
     
@@ -47,6 +47,11 @@ public struct SwiftTwitchIRC {
             }
             
             for line in message.split(separator: "\r\n") {
+                if line.contains("PING") {
+                    send(line.replacingOccurrences(of: "PING", with: "PONG"))
+                    return
+                }
+                
                 if let messageData = parseData(message: String(line)) {
                     onMessageReceived(messageData)
                 }
@@ -55,7 +60,7 @@ public struct SwiftTwitchIRC {
         }
     }
     
-    func send(message: String) {
+    func send(_ message: String) {
         guard let data = "\(message)\r\n".data(using: .utf8) else {
             return
         }
@@ -69,19 +74,31 @@ public struct SwiftTwitchIRC {
         }
     }
     
-    func connect() {
-        send(message: "PASS oauth:\(token)")
-        send(message: "NICK \(username)")
-        send(message: "CAP REQ :twitch.tv/commands twitch.tv/tags")
+    public func sendMessage(message: String, channel: String) {
+        send("PRIVMSG #\(channel) :\(message)")
     }
     
-    mutating func joinChannel(channel: String) {
-        send(message: "JOIN #\(channel)")
+    public func sendReply(to messageID: String, message: String, channel: String) {
+        send("@reply-parent-msg-id=\(messageID) PRIVMSG #\(channel) :\(message)")
+    }
+    
+    public func sendWhisper(message: String, to userName: String) {
+        send("PRIVMSG #\(userName) :/w \(userName) \(message)")
+    }
+    
+    func connect() {
+        send("PASS oauth:\(token)")
+        send("NICK \(username)")
+        send("CAP REQ :twitch.tv/commands twitch.tv/tags")
+    }
+    
+    mutating public func joinChannel(channel: String) {
+        send("JOIN #\(channel)")
         chatrooms.append(channel)
     }
     
-    mutating func leaveChannel(channel: String) {
-        send(message: "PART #\(channel)")
+    mutating public  func leaveChannel(channel: String) {
+        send("PART #\(channel)")
         chatrooms.removeAll(where: { $0 == channel })
     }
 }

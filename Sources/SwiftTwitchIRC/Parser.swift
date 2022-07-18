@@ -59,10 +59,7 @@ public extension SwiftTwitchIRC {
         }
         
         index = message.index(after: index)
-        message = String(message[index...])
-        chatMessage.text = message
-        
-        print(chatMessage)
+        chatMessage.text = String(message[index...])
         
         return chatMessage
     }

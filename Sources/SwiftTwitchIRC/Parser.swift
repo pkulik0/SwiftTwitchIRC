@@ -5,8 +5,8 @@
 //  Created by pkulik0 on 18/07/2022.
 //
 
-public extension SwiftTwitchIRC {
-    struct ChatMessage: Identifiable {
+extension SwiftTwitchIRC {
+    public struct ChatMessage: Identifiable {
         public var id: String
         public var command: String
         public var channel: String

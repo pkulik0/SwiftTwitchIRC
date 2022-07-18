@@ -14,14 +14,18 @@ public struct SwiftTwitchIRC {
     var session: URLSession
     var connection: URLSessionStreamTask
     
+    let onMessageReceived: (ChatMessage) -> Void
+    
     let host = "irc.chat.twitch.tv"
     let port = 6667
     
     private var chatrooms: [String] = []
     
-    public init(username: String, token: String, session: URLSession = URLSession.shared) {
+    public init(username: String, token: String, session: URLSession = URLSession.shared, onMessageReceived: @escaping (ChatMessage) -> Void) {
         self.username = username
         self.token = token
+        
+        self.onMessageReceived = onMessageReceived
         
         self.session = session
         self.connection = session.streamTask(withHostName: host, port: port)
@@ -32,7 +36,7 @@ public struct SwiftTwitchIRC {
         joinChannel(channel: "adamcy_")
     }
     
-    mutating func leave() {
+    mutating func disconnect() {
         connection.cancel()
     }
     
@@ -43,7 +47,9 @@ public struct SwiftTwitchIRC {
             }
             
             for line in message.split(separator: "\r\n") {
-                parseData(message: String(line))
+                if let messageData = parseData(message: String(line)) {
+                    onMessageReceived(messageData)
+                }
             }
             read()
         }

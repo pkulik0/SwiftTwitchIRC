@@ -4,8 +4,12 @@ import XCTest
 final class SwiftTwitchIRCTests: XCTestCase {
     func testExample() throws {
         let expectation = XCTestExpectation(description: "aha")
-        let irc = SwiftTwitchIRC(username: "qurrie", token: "3184l994nsn2lgpq8gaup3oe3xifty")
+        let irc = SwiftTwitchIRC(username: "qurrie", token: "3184l994nsn2lgpq8gaup3oe3xifty", onMessageReceived: printMsg)
 
         wait(for: [expectation], timeout: 3000.0)
+    }
+    
+    func printMsg(msg: SwiftTwitchIRC.ChatMessage) {
+        print(msg)
     }
 }

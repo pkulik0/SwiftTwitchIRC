@@ -31,7 +31,14 @@ public extension SwiftTwitchIRC {
         
         if message[index] == "@" {
             index = message.firstIndex(of: " ") ?? message.startIndex
-            let tags = String(message[message.index(after: message.startIndex)..<index])
+            
+            var tags = String(message[..<index])
+            if let firstCharacter = tags.first {
+                if firstCharacter == "@" {
+                    tags = String(tags[tags.index(after: tags.startIndex)...])
+                }
+            }
+            
             parseTags(tags: tags, messageData: &chatMessage)
             
             index = message.index(after: index)

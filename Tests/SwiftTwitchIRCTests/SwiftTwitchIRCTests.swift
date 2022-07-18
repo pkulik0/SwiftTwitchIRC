@@ -3,9 +3,9 @@ import XCTest
 
 final class SwiftTwitchIRCTests: XCTestCase {
     func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct
-        // results.
-        XCTAssertEqual(SwiftTwitchIRC().text, "Hello, World!")
+        let expectation = XCTestExpectation(description: "aha")
+        let irc = SwiftTwitchIRC(username: "qurrie", token: "3184l994nsn2lgpq8gaup3oe3xifty")
+
+        wait(for: [expectation], timeout: 3000.0)
     }
 }

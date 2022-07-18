@@ -7,18 +7,26 @@
 
 public extension SwiftTwitchIRC {
     struct ChatMessage {
-        let sender: String
-        let text: String
+        var id: String
+        var channel: String
+        
+        var userID: String
+        var userName: String
+        var badges: [String]
+        var color: String
+        
+        var text: String
     }
     
     func parseData(message: String) -> ChatMessage? {
         var message = message
         var index = message.startIndex
+        var chatMessage = ChatMessage(id: "", channel: "", userID: "", userName: "", badges: [], color: "", text: "")
         
         if message[index] == "@" {
             index = message.firstIndex(of: " ") ?? message.startIndex
-            let tags = String(message[..<index])
-            parseTags(tags: tags)
+            let tags = String(message[message.index(after: message.startIndex)..<index])
+            parseTags(tags: tags, messageData: &chatMessage)
             
             index = message.index(after: index)
             message = String(message[index...])
@@ -27,11 +35,7 @@ public extension SwiftTwitchIRC {
         
         if message[index] == ":" {
             index = message.firstIndex(of: " ") ?? message.startIndex
-            let source = String(message[..<index])
-            parseSource(source: source)
-            
             message = String(message[index...])
-            index = message.startIndex
         }
         
         index = message.firstIndex(of: ":") ?? message.endIndex
@@ -45,23 +49,41 @@ public extension SwiftTwitchIRC {
         
         index = message.index(after: index)
         message = String(message[index...])
-        print("\t message")
-        print(message)
+        chatMessage.text = message
         
-        return ChatMessage(sender: "1", text: "2")
+        print(chatMessage)
+        
+        return chatMessage
     }
     
-    func parseTags(tags: String) {
-        var parsedTags: [String: String] = [:]
+    func parseTags(tags: String, messageData: inout ChatMessage) {
+        let tags = tags.split(separator: ";")
         
-        
-        print("\t tags")
-        print(tags)
-    }
-    
-    func parseSource(source: String) {
-        print("\t source")
-        print(source)
+        for tag in tags {
+            let tagData = tag.split(separator: "=")
+            
+            if tagData.count < 2 {
+                continue
+            }
+            
+            let tagName = tagData[0]
+            let tagContent = tagData[1]
+            
+            switch(tagName) {
+            case "badges":
+                messageData.badges = tagContent.split(separator: ",").map({ String($0) })
+            case "color":
+                messageData.color = String(tagContent)
+            case "display-name":
+                messageData.userName = String(tagContent)
+            case "user-id":
+                messageData.userID = String(tagContent)
+            case "id":
+                messageData.id = String(tagContent)
+            default:
+                break
+            }
+        }
     }
     
     func parseCommand(command: String) {

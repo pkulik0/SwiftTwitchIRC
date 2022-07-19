@@ -6,24 +6,6 @@
 //
 
 extension SwiftTwitchIRC {
-    public struct ChatMessage: Identifiable {
-        public var id: String
-        public var command: String
-        public var channel: String
-        
-        public var userID: String
-        public var userName: String
-        public var badges: [String: Int]
-        public var color: String
-        
-        public var text: String
-        
-        public var noticeMessage: Notice?
-        public var targetUserID: String?
-        public var targetMessageID: String?
-        public var banDuration: Int?
-    }
-    
     func parseData(message: String) -> ChatMessage? {
         var message = message
         var index = message.startIndex
@@ -58,6 +40,10 @@ extension SwiftTwitchIRC {
         }
         
         let command = String(message[..<index]).trimmingCharacters(in: .whitespaces)
+        if command.isEmpty {
+            return nil
+        }
+        
         parseCommand(command: command, messageData: &chatMessage)
         
         // Ignore numeric commands

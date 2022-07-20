@@ -29,7 +29,6 @@ public struct SwiftTwitchIRC {
         
         self.session = session
         self.connection = session.streamTask(withHostName: host, port: port)
-        connection.resume()
         
         read()
         connect()
@@ -47,6 +46,7 @@ public struct SwiftTwitchIRC {
     }
     
     func read() {
+        connection.resume()
         connection.readData(ofMinLength: 0, maxLength: 100000, timeout: 0) { data, isEOF, error in
             defer { read() }
             if let error = error {

@@ -48,6 +48,12 @@ public struct SwiftTwitchIRC {
     
     func read() {
         connection.readData(ofMinLength: 0, maxLength: 100000, timeout: 0) { data, isEOF, error in
+            defer { read() }
+            if let error = error {
+                print("irc error: \(error.localizedDescription)")
+                return
+            }
+            
             guard let data = data, let message = String(data: data, encoding: .utf8) else {
                 return
             }
@@ -55,14 +61,13 @@ public struct SwiftTwitchIRC {
             for line in message.split(separator: "\r\n") {
                 if line.contains("PING") {
                     send(line.replacingOccurrences(of: "PING", with: "PONG"))
-                    return
+                    continue
                 }
                 
                 if let messageData = parseData(message: String(line)) {
                     onMessageReceived(messageData)
                 }
             }
-            read()
         }
     }
     
@@ -74,8 +79,6 @@ public struct SwiftTwitchIRC {
         connection.write(data, timeout: 0) { error in
             if let error = error {
                 print(error.localizedDescription)
-            } else {
-                print("Sent: \(message)")
             }
         }
     }

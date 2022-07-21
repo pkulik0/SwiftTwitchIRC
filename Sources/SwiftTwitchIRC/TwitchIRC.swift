@@ -7,25 +7,59 @@
 
 import Foundation
 
-public struct SwiftTwitchIRC {
+@available(macOS 10.15, iOS 13.0, *)
+public class SwiftTwitchIRC {
     var username: String
     var token: String
     
     var session: URLSession
     var connection: URLSessionStreamTask
     
-    let onMessageReceived: (ChatMessage) -> Void
-    
     let host = "irc.chat.twitch.tv"
     let port = 6667
     
-    private var chatrooms: [String] = []
+    var chatrooms: [String] = []
     
-    public init(username: String, token: String, session: URLSession = URLSession.shared, onMessageReceived: @escaping (ChatMessage) -> Void) {
+    var onMessageReceived: ((ChatMessage) -> Void)?
+    var onWhisperReceived: ((WhisperMessage) -> Void)?
+    
+    var onNoticeReceived: ((Notice) -> Void)?
+    var onUserEvent: ((UserEvent) -> Void)?
+    
+    var onUserStateChanged: ((UserState) -> Void)?
+    var onRoomStateChanged: ((RoomState) -> Void)?
+    
+    var onClearChat: ((ClearChat) -> Void)?
+    var onClearMessage: ((ClearMessage) -> Void)?
+    
+    var onHostStarted: ((HostInfo) -> Void)?
+    
+    public init(
+        username: String,
+        token: String,
+        session: URLSession = URLSession.shared,
+        onMessageReceived: ((ChatMessage) -> Void)? = nil,
+        onWhisperReceived: ((WhisperMessage) -> Void)? = nil,
+        onNoticeReceived: ((Notice) -> Void)? = nil,
+        onUserEvent: ((UserEvent) -> Void)? = nil,
+        onUserStateChanged: ((UserState) -> Void)? = nil,
+        onRoomStateChanged: ((RoomState) -> Void)? = nil,
+        onClearChat: ((ClearChat) -> Void)? = nil,
+        onClearMessage: ((ClearMessage) -> Void)? = nil,
+        onHostStarted: ((HostInfo) -> Void)? = nil
+    ) {
         self.username = username
         self.token = token
         
         self.onMessageReceived = onMessageReceived
+        self.onWhisperReceived = onWhisperReceived
+        self.onNoticeReceived = onNoticeReceived
+        self.onUserEvent = onUserEvent
+        self.onUserStateChanged = onUserStateChanged
+        self.onRoomStateChanged = onRoomStateChanged
+        self.onClearChat = onClearChat
+        self.onClearMessage = onClearMessage
+        self.onHostStarted = onHostStarted
         
         self.session = session
         self.connection = session.streamTask(withHostName: host, port: port)
@@ -47,14 +81,17 @@ public struct SwiftTwitchIRC {
     
     func read() {
         connection.resume()
-        connection.readData(ofMinLength: 0, maxLength: 100000, timeout: 0) { data, isEOF, error in
+        
+        connection.readData(ofMinLength: 0, maxLength: 9999, timeout: 0) { [self] data, isEOF, error in
             defer { read() }
+            
             if let error = error {
-                print("irc error: \(error.localizedDescription)")
+                print("read() error: \(error.localizedDescription)")
                 return
             }
             
             guard let data = data, let message = String(data: data, encoding: .utf8) else {
+                print("read() could not read data")
                 return
             }
             
@@ -64,22 +101,23 @@ public struct SwiftTwitchIRC {
                     continue
                 }
                 
-                if let messageData = parseData(message: String(line)) {
-                    onMessageReceived(messageData)
-                }
+                parseData(message: String(line))
             }
         }
     }
     
     func send(_ message: String) {
         guard let data = "\(message)\r\n".data(using: .utf8) else {
+            print("send() error: could not send message")
             return
         }
         
         connection.write(data, timeout: 0) { error in
             if let error = error {
                 print(error.localizedDescription)
+                return
             }
+            print("sent: \(message)")
         }
     }
     
@@ -95,12 +133,12 @@ public struct SwiftTwitchIRC {
         send("PRIVMSG #\(userName) :/w \(userName) \(message)")
     }
     
-    mutating public func joinChannel(channel: String) {
+    public func joinChannel(channel: String) {
         send("JOIN #\(channel)")
         chatrooms.append(channel)
     }
     
-    mutating public  func leaveChannel(channel: String) {
+    public func leaveChannel(channel: String) {
         send("PART #\(channel)")
         chatrooms.removeAll(where: { $0 == channel })
     }

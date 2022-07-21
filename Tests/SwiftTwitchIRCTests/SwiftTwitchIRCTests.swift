@@ -4,14 +4,22 @@ import XCTest
 final class SwiftTwitchIRCTests: XCTestCase {
     func testExample() throws {
         let expectation = XCTestExpectation(description: "aha")
-        let irc = SwiftTwitchIRC(username: "qurrie", token: "3184l994nsn2lgpq8gaup3oe3xifty", onMessageReceived: printMsg)
-        irc.sendMessage(message: "123", channel: "qurrie")
-        irc.sendWhisper(message: "hi", to: "qurrierurie")
+        let irc = SwiftTwitchIRC(username: "qurrie", token: "3184l994nsn2lgpq8gaup3oe3xifty",
+                                 onMessageReceived: printMsg,
+                                 onWhisperReceived: printMsg,
+                                 onNoticeReceived: printMsg,
+                                 onUserEvent: printMsg,
+                                 onUserStateChanged: printMsg,
+                                 onRoomStateChanged: printMsg,
+                                 onClearChat: printMsg,
+                                 onClearMessage: printMsg,
+                                 onHostStarted: printMsg)
+        irc.joinChannel(channel: "hasanabi")
 
         wait(for: [expectation], timeout: 360000.0)
     }
     
-    func printMsg(msg: SwiftTwitchIRC.ChatMessage) {
+    func printMsg<T>(msg: T) {
         print(msg)
     }
 }

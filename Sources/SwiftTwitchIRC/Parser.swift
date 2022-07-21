@@ -5,107 +5,250 @@
 //  Created by pkulik0 on 18/07/2022.
 //
 
+import Foundation
+
+@available(macOS 10.15, iOS 13.0, *)
 extension SwiftTwitchIRC {
-    func parseData(message: String) -> ChatMessage? {
-        var message = message
-        var index = message.startIndex
-        var chatMessage = ChatMessage(id: "", command: "", channel: "", userID: "", userName: "", badges: [:], color: "", text: "")
+    func parseData(message: String) {
+        if message.first == ":" {
+            return
+        }
         
-        if message[index] == "@" {
-            index = message.firstIndex(of: " ") ?? message.startIndex
+        let messageParts = message.split(separator: " ")
+        
+        guard var tags = messageParts[safe: 0],
+              let command = messageParts[safe: 2],
+              let channel = messageParts[safe: 3]
+        else {
+            return
+        }
+        tags.remove(at: tags.startIndex)
+        let parsedTags = parseTags(String(tags))
+        
+        var content = ""
+        if let range = message.range(of: channel),
+            range.upperBound != message.endIndex {
+            let startIndex = message.index(range.upperBound, offsetBy: 2)
+            content = String(message[startIndex...])
+        }
+        
+        let fallbackID = UUID().uuidString
+        let commandString = String(command)
+        var channelString = String(channel)
+        
+        switch(command) {
+        case "CLEARCHAT":
+            guard let onChatClear = onClearChat else {
+                print("failed clear chat")
+                break
+            }
+            var banDuration: Int? = nil
+            if let durationString = parsedTags["ban-duration"] {
+                banDuration = Int(durationString)
+            }
+            onChatClear(ClearChat(id: fallbackID, command: commandString, chatroom: channelString, targetUserID: parsedTags["target-user-id"], banDuration: banDuration))
+        case "CLEARMSG":
+            guard let onClearMessage = onClearMessage,
+                  let executorName = parsedTags["login"],
+                  let targetMessageID = parsedTags["target-msg-id"]
+            else {
+                print("failed clear msg")
+                break
+            }
+            onClearMessage(ClearMessage(id: fallbackID, command: commandString, chatroom: channelString, executorName: executorName, targetMessageID: targetMessageID))
+        case "GLOBALUSERSTATE":
+            channelString = "*"
+            fallthrough
+        case "USERSTATE":
+            guard let onUserStateChanged = onUserStateChanged,
+                  let userName = parsedTags["display-name"],
+                  let badgesString = parsedTags["badges"],
+                  let color = parsedTags["color"],
+                  let emoteSets = parsedTags["emote-sets"]?.split(separator: ",").map({ String($0) })
+            else {
+                print("failed userstate")
+                break
+            }
+            let badges = parseBadges(badgesString)
+            onUserStateChanged(UserState(id: fallbackID, command: commandString, chatroom: channelString, userName: userName, color: color, badges: badges, emoteSets: emoteSets))
+        case "HOSTTARGET":
+            let contentParts = content.split(separator: " ")
+            guard let onHostStarted = onHostStarted,
+                  let hostedChannel = contentParts[safe: 0],
+                  let viewersString = contentParts[safe: 1],
+                  let viewerCount = Int(viewersString)
+            else {
+                print("failed hosttarget")
+                break
+            }
+            onHostStarted(HostInfo(id: fallbackID, command: commandString, chatroom: channelString, hostedChannel: String(hostedChannel), viewerCount: viewerCount))
+        case "NOTICE":
+            guard let onNoticeReceived = onNoticeReceived,
+                  let noticeString = parsedTags["msg-id"],
+                  let noticeMessage = Notice.NoticeType(rawValue: noticeString)
+            else {
+                print("failed notice")
+                break
+            }
+            onNoticeReceived(Notice(id: fallbackID, command: commandString, chatroom: channelString, type: noticeMessage, targetUserID: parsedTags["target-user-id"], text: content))
+        case "RECONNECT":
+            print("reconnect")
+            break
+        case "ROOMSTATE":
+            guard let onRoomStateChanged = onRoomStateChanged else {
+                print("failed roomstate")
+                break
+            }
+            var isEmoteOnly: Bool? = nil
+            var followersOnlyDuration: Int? = nil
+            var isSubsOnly: Bool? = nil
+            var slowModeDuration: Int? = nil
+            var isInUniqueMode: Bool? = nil
             
-            var tags = String(message[..<index])
-            if let firstCharacter = tags.first {
-                if firstCharacter == "@" {
-                    tags = String(tags[tags.index(after: tags.startIndex)...])
-                }
+            if let emoteOnlyString = parsedTags["emote-only"] {
+                isEmoteOnly = Bool(emoteOnlyString)
+            }
+            if let followersOnlyString = parsedTags["followers-only"] {
+                followersOnlyDuration = Int(followersOnlyString)
+            }
+            if let subsOnlyString = parsedTags["subs-only"] {
+                isSubsOnly = Bool(subsOnlyString)
+            }
+            if let slowModeString = parsedTags["slow"] {
+                slowModeDuration = Int(slowModeString)
+            }
+            if let uniqueModeString = parsedTags["r9k"] {
+                isInUniqueMode = Bool(uniqueModeString)
             }
             
-            parseTags(tags: tags, messageData: &chatMessage)
-            
-            index = message.index(after: index)
-            message = String(message[index...])
-            index = message.startIndex
-        }
-        
-        if message[index] == ":" {
-            index = message.firstIndex(of: " ") ?? message.startIndex
-            message = String(message[index...])
-        }
-        
-        index = message.firstIndex(of: ":") ?? message.endIndex
-        
-        if index == message.endIndex {
-            return nil
-        }
-        
-        let command = String(message[..<index]).trimmingCharacters(in: .whitespaces)
-        if command.isEmpty {
-            return nil
-        }
-        
-        parseCommand(command: command, messageData: &chatMessage)
-        
-        // Ignore numeric commands
-        if let _ = Int(chatMessage.command) {
-            return nil
-        }
-        
-        index = message.index(after: index)
-        chatMessage.text = String(message[index...])
-        
-        return chatMessage
-    }
-    
-    func parseTags(tags: String, messageData: inout ChatMessage) {
-        let tags = tags.split(separator: ";")
-        
-        for tag in tags {
-            let tagData = tag.split(separator: "=")
-            
-            if tagData.count < 2 {
-                continue
+            onRoomStateChanged(RoomState(id: fallbackID, command: commandString, chatroom: channelString, isEmoteOnly: isEmoteOnly, isSubsOnly: isSubsOnly, followersOnlyDuration: followersOnlyDuration, slowModeDuration: slowModeDuration, isInUniqueMode: isInUniqueMode))
+        case "USERNOTICE":
+            guard let onUserEvent = onUserEvent,
+                  let id = parsedTags["id"],
+                  let userName = parsedTags["display-name"],
+                  let badgesString = parsedTags["badges"],
+                  let typeString = parsedTags["msg-id"],
+                  let type = UserEvent.EventType(rawValue: typeString),
+                  let color = parsedTags["color"]
+            else {
+                print("failed usernotice")
+                break
             }
+            let badges = parseBadges(badgesString)
             
-            let tagName = tagData[0]
-            let tagContent = tagData[1]
+            var subInfo: UserEvent.SubInfo? = nil
+            var giftInfo: UserEvent.GiftInfo? = nil
+            var raidInfo: UserEvent.RaidInfo? = nil
+            var ritualInfo: UserEvent.RitualInfo? = nil
+            var earnedBitsBadge: String? = nil
             
-            switch(tagName) {
-            case "badges":
-                tagContent.split(separator: ",").forEach { badgeInfo in
-                    let badgeInfo = badgeInfo.split(separator: "/")
-                    let badgeName = String(badgeInfo[0])
-                    let badgeLevel = Int(badgeInfo[1])
-                    messageData.badges[badgeName] = badgeLevel
+            switch(type) {
+            case .sub:
+                fallthrough
+            case .resub:
+                guard let cumulativeMonthsString = parsedTags["msg-param-cumulative-months"],
+                      let cumulativeMonths = Int(cumulativeMonthsString),
+                      let currentStreakString = parsedTags["msg-param-streak-months"],
+                      let currentStreak = Int(currentStreakString),
+                      let subTypeString = parsedTags["msg-param-sub-plan"],
+                      let subType = UserEvent.SubType(rawValue: subTypeString)
+                else {
+                    print("failed resub")
+                    break
                 }
-            case "color":
-                messageData.color = String(tagContent)
-            case "display-name":
-                messageData.userName = String(tagContent)
-            case "user-id":
-                messageData.userID = String(tagContent)
-            case "id":
-                messageData.id = String(tagContent)
-            case "msg-id":
-                messageData.noticeMessage = ChatMessage.Notice(rawValue: String(tagContent))
-            case "target-msg-id":
-                messageData.targetMessageID = String(tagContent)
-            case "target-user-id":
-                messageData.targetUserID = String(tagContent)
-            case "ban-duration":
-                messageData.banDuration = Int(tagContent)
+                subInfo = UserEvent.SubInfo(cumulativeMonths: cumulativeMonths, currentStreak: currentStreak, subType: subType)
+            case .subgift:
+                guard let cumulativeMonthsString = parsedTags["msg-param-months"],
+                      let cumulativeMonths = Int(cumulativeMonthsString),
+                      let giftedMonthsString = parsedTags["msg-param-gift-months"],
+                      let giftedMonths = Int(giftedMonthsString),
+                      let subTypeString = parsedTags["msg-param-sub-plan"],
+                      let subType = UserEvent.SubType(rawValue: subTypeString),
+                      let recipientName = parsedTags["msg-param-recipient-display-name"],
+                      let recipientID = parsedTags["msg-param-recipient-id"],
+                      let senderName = parsedTags["msg-param-sender-name"]
+                else {
+                    print("failed subgift")
+                    break
+                }
+                giftInfo = UserEvent.GiftInfo(cumulativeMonths: cumulativeMonths, giftedMonths: giftedMonths, subType: subType, recipientName: recipientName, recipientID: recipientID, senderName: senderName)
+            case .raid:
+                guard let broadcasterName = parsedTags["msg-param-displayName"],
+                      let viewerCountString = parsedTags["msg-param-viewerCount"],
+                      let viewerCount = Int(viewerCountString)
+                else {
+                    print("failed raid")
+                    break
+                }
+                raidInfo = UserEvent.RaidInfo(broadcasterName: broadcasterName, viewerCount: viewerCount)
+            case .ritual:
+                guard let ritualTypeString = parsedTags["msg-param-ritual-name"],
+                      let ritualType = UserEvent.RitualInfo.RitualType(rawValue: ritualTypeString)
+                else {
+                    print("failed ritual")
+                    break
+                }
+                ritualInfo = UserEvent.RitualInfo(type: ritualType)
+            case .bitsBadgeTier:
+                earnedBitsBadge = parsedTags["msg-param-threshold"]
             default:
                 break
             }
+            
+            onUserEvent(UserEvent(id: id, command: commandString, userName: userName, badges: badges, color: color, type: type, subInfo: subInfo, giftInfo: giftInfo, raidInfo: raidInfo, ritualInfo: ritualInfo, earnedBitsBadge: earnedBitsBadge))
+        case "WHISPER":
+            guard let onWhisperReceived = onWhisperReceived,
+                  let id = parsedTags["message-id"],
+                  let fromUserName = parsedTags["display-name"],
+                  let badgesString = parsedTags["badges"],
+                  let color = parsedTags["color"]
+            else {
+                print("failed whisper")
+                break
+            }
+            let badges = parseBadges(badgesString)
+            onWhisperReceived(WhisperMessage(id: id, command: commandString, fromUserName: fromUserName, badges: badges, color: color, text: content))
+        case "PRIVMSG":
+            guard let onMessageReceived = onMessageReceived,
+                  let id = parsedTags["id"],
+                  let userID = parsedTags["user-id"],
+                  let userName = parsedTags["display-name"],
+                  let badgesString = parsedTags["badges"],
+                  let color = parsedTags["color"]
+            else {
+                print("failed privmsg")
+                break
+            }
+            let badges = parseBadges(badgesString)
+            onMessageReceived(ChatMessage(id: id, command: commandString, chatroom: channelString, userID: userID, userName: userName, badges: badges, color: color, text: content))
+        default:
+            print("unrecognized command: \(message)")
+            break
         }
     }
     
-    func parseCommand(command: String, messageData: inout ChatMessage) {
-        let commandParts = command.split(separator: " ")
-        messageData.command = String(commandParts[0])
+    private func parseFromString(_ elements: String, firstSeparator: Character, secondSeparator: Character) -> [String: String] {
+        var parsedElements: [String: String] = [:]
+        let separatedElements = elements.split(separator: firstSeparator)
         
-        if commandParts.count > 1 {
-            messageData.channel = String(commandParts[1])
+        for element in separatedElements {
+            let data = element.split(separator: secondSeparator)
+            
+            guard let name = data[safe: 0],
+                  let content = data[safe: 1]
+            else {
+                continue
+            }
+            parsedElements[String(name)] = String(content)
         }
+        return parsedElements
+    }
+    
+    private func parseTags(_ tags: String) -> [String: String] {
+        parseFromString(tags, firstSeparator: ";", secondSeparator: "=")
+    }
+    
+    private func parseBadges(_ badges: String) -> [String: String] {
+        parseFromString(badges, firstSeparator: ",", secondSeparator: "/")
     }
 }

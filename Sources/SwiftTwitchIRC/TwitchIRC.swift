@@ -89,7 +89,7 @@ public class SwiftTwitchIRC {
                 let line = String(buffer[..<range.lowerBound])
                 buffer = String(buffer[range.upperBound...])
                 
-                if line.contains("PING") {
+                if line.starts(with: "PING") {
                     send(line.replacingOccurrences(of: "PING", with: "PONG"))
                     continue
                 }

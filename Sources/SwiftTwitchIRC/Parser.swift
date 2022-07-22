@@ -9,7 +9,7 @@ import Foundation
 
 @available(macOS 10.15, iOS 13.0, *)
 extension SwiftTwitchIRC {
-    func parseData(message: String) {
+    func parseMessage(_ message: String) {
         if message.first == ":" {
             return
         }
@@ -22,6 +22,7 @@ extension SwiftTwitchIRC {
         else {
             return
         }
+        
         tags.remove(at: tags.startIndex)
         let parsedTags = parseTags(String(tags))
         
@@ -71,17 +72,6 @@ extension SwiftTwitchIRC {
             }
             let badges = parseBadges(badgesString)
             onUserStateChanged(UserState(id: fallbackID, command: commandString, chatroom: channelString, userName: userName, color: color, badges: badges, emoteSets: emoteSets))
-        case "HOSTTARGET":
-            let contentParts = content.split(separator: " ")
-            guard let onHostStarted = onHostStarted,
-                  let hostedChannel = contentParts[safe: 0],
-                  let viewersString = contentParts[safe: 1],
-                  let viewerCount = Int(viewersString)
-            else {
-                print("failed hosttarget")
-                break
-            }
-            onHostStarted(HostInfo(id: fallbackID, command: commandString, chatroom: channelString, hostedChannel: String(hostedChannel), viewerCount: viewerCount))
         case "NOTICE":
             guard let onNoticeReceived = onNoticeReceived,
                   let noticeString = parsedTags["msg-id"],

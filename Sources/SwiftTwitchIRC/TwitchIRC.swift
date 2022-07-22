@@ -33,8 +33,6 @@ public class SwiftTwitchIRC {
     var onClearChat: ((ClearChat) -> Void)?
     var onClearMessage: ((ClearMessage) -> Void)?
     
-    var onHostStarted: ((HostInfo) -> Void)?
-    
     public init(
         username: String,
         token: String,
@@ -46,8 +44,7 @@ public class SwiftTwitchIRC {
         onUserStateChanged: ((UserState) -> Void)? = nil,
         onRoomStateChanged: ((RoomState) -> Void)? = nil,
         onClearChat: ((ClearChat) -> Void)? = nil,
-        onClearMessage: ((ClearMessage) -> Void)? = nil,
-        onHostStarted: ((HostInfo) -> Void)? = nil
+        onClearMessage: ((ClearMessage) -> Void)? = nil
     ) {
         self.username = username
         self.token = token
@@ -60,15 +57,15 @@ public class SwiftTwitchIRC {
         self.onRoomStateChanged = onRoomStateChanged
         self.onClearChat = onClearChat
         self.onClearMessage = onClearMessage
-        self.onHostStarted = onHostStarted
         
         self.session = session
         self.connection = session.streamTask(withHostName: host, port: port)
         
+        connection.resume()
         startParsingWorker()
-        
         read()
         connect()
+        
         joinChannel(channel: username)
     }
     
@@ -89,21 +86,19 @@ public class SwiftTwitchIRC {
                     usleep(1000)
                     continue
                 }
-                let line = buffer[..<range.lowerBound]
+                let line = String(buffer[..<range.lowerBound])
                 buffer = String(buffer[range.upperBound...])
                 
                 if line.contains("PING") {
                     send(line.replacingOccurrences(of: "PING", with: "PONG"))
                     continue
                 }
-                parseData(message: String(line))
+                parseMessage(line)
             }
         }
     }
     
     func read() {
-        connection.resume()
-        
         connection.readData(ofMinLength: 0, maxLength: 9999, timeout: 0) { [self] data, isEOF, error in
             defer { read() }
             

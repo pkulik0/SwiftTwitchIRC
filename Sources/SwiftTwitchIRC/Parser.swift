@@ -106,19 +106,19 @@ extension SwiftTwitchIRC {
             var isInUniqueMode: Bool? = nil
             
             if let emoteOnlyString = parsedTags["emote-only"] {
-                isEmoteOnly = Bool(emoteOnlyString)
+                isEmoteOnly = emoteOnlyString == "1"
             }
             if let followersOnlyString = parsedTags["followers-only"] {
                 followersOnlyDuration = Int(followersOnlyString)
             }
             if let subsOnlyString = parsedTags["subs-only"] {
-                isSubsOnly = Bool(subsOnlyString)
+                isSubsOnly = subsOnlyString == "1"
             }
             if let slowModeString = parsedTags["slow"] {
                 slowModeDuration = Int(slowModeString)
             }
             if let uniqueModeString = parsedTags["r9k"] {
-                isInUniqueMode = Bool(uniqueModeString)
+                isInUniqueMode = uniqueModeString == "1"
             }
             
             onRoomStateChanged(RoomState(id: fallbackID, command: commandString, chatroom: channelString, isEmoteOnly: isEmoteOnly, isSubsOnly: isSubsOnly, followersOnlyDuration: followersOnlyDuration, slowModeDuration: slowModeDuration, isInUniqueMode: isInUniqueMode))

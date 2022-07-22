@@ -19,6 +19,7 @@ public class SwiftTwitchIRC {
     let port = 6667
     
     var chatrooms: [String] = []
+    var buffer: String = ""
     
     var onMessageReceived: ((ChatMessage) -> Void)?
     var onWhisperReceived: ((WhisperMessage) -> Void)?
@@ -64,6 +65,8 @@ public class SwiftTwitchIRC {
         self.session = session
         self.connection = session.streamTask(withHostName: host, port: port)
         
+        startParsingWorker()
+        
         read()
         connect()
         joinChannel(channel: username)
@@ -77,6 +80,25 @@ public class SwiftTwitchIRC {
     
     public func disconnect() {
         connection.cancel()
+    }
+    
+    func startParsingWorker() {
+        Task {
+            while true {
+                guard let range = buffer.range(of: "\r\n") else {
+                    usleep(1000)
+                    continue
+                }
+                let line = buffer[..<range.lowerBound]
+                buffer = String(buffer[range.upperBound...])
+                
+                if line.contains("PING") {
+                    send(line.replacingOccurrences(of: "PING", with: "PONG"))
+                    continue
+                }
+                parseData(message: String(line))
+            }
+        }
     }
     
     func read() {
@@ -94,15 +116,7 @@ public class SwiftTwitchIRC {
                 print("read() could not read data")
                 return
             }
-            
-            for line in message.split(separator: "\r\n") {
-                if line.contains("PING") {
-                    send(line.replacingOccurrences(of: "PING", with: "PONG"))
-                    continue
-                }
-                
-                parseData(message: String(line))
-            }
+            buffer += message
         }
     }
     

@@ -108,12 +108,11 @@ public class SwiftTwitchIRC {
             defer { read() }
             
             if let error = error {
-                print("read() error: \(error.localizedDescription)")
+                print(error.localizedDescription)
                 return
             }
             
             guard let data = data, let message = String(data: data, encoding: .utf8) else {
-                print("read() could not read data")
                 return
             }
             buffer += message
@@ -122,7 +121,6 @@ public class SwiftTwitchIRC {
     
     func send(_ message: String) {
         guard let data = "\(message)\r\n".data(using: .utf8) else {
-            print("send() error: could not send message")
             return
         }
         
@@ -131,7 +129,6 @@ public class SwiftTwitchIRC {
                 print(error.localizedDescription)
                 return
             }
-            print("sent: \(message)")
         }
     }
     

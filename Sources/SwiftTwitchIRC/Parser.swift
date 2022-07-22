@@ -148,13 +148,15 @@ extension SwiftTwitchIRC {
             case .resub:
                 guard let cumulativeMonthsString = parsedTags["msg-param-cumulative-months"],
                       let cumulativeMonths = Int(cumulativeMonthsString),
-                      let currentStreakString = parsedTags["msg-param-streak-months"],
-                      let currentStreak = Int(currentStreakString),
                       let subTypeString = parsedTags["msg-param-sub-plan"],
                       let subType = UserEvent.SubType(rawValue: subTypeString)
                 else {
                     print("failed resub")
                     break
+                }
+                var currentStreak: Int? = nil
+                if let currentStreakString = parsedTags["msg-param-streak-months"] {
+                    currentStreak = Int(currentStreakString)
                 }
                 subInfo = UserEvent.SubInfo(cumulativeMonths: cumulativeMonths, currentStreak: currentStreak, subType: subType)
             case .subgift:
@@ -234,12 +236,10 @@ extension SwiftTwitchIRC {
         for element in separatedElements {
             let data = element.split(separator: secondSeparator)
             
-            guard let name = data[safe: 0],
-                  let content = data[safe: 1]
-            else {
+            guard let name = data[safe: 0] else {
                 continue
             }
-            parsedElements[String(name)] = String(content)
+            parsedElements[String(name)] = String(data[safe: 1] ?? "")
         }
         return parsedElements
     }

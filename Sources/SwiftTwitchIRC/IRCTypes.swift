@@ -150,7 +150,7 @@ public extension SwiftTwitchIRC {
         
         public struct SubInfo: Hashable, Codable {
             public var cumulativeMonths: Int
-            public var currentStreak: Int
+            public var currentStreak: Int?
             public var subType: SubType
             
         }

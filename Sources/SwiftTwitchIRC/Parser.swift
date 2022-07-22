@@ -34,7 +34,7 @@ extension SwiftTwitchIRC {
         
         let fallbackID = UUID().uuidString
         let commandString = String(command)
-        var channelString = String(channel)
+        var channelString = String(channel.dropFirst())
         
         switch(command) {
         case "CLEARCHAT":

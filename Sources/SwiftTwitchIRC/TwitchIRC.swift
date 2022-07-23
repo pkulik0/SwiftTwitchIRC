@@ -72,9 +72,10 @@ public class SwiftTwitchIRC {
             startWorker()
         }
 
+        send("CAP REQ :twitch.tv/commands twitch.tv/tags")
         send("PASS oauth:\(token)")
         send("NICK \(username)")
-        send("CAP REQ :twitch.tv/commands twitch.tv/tags")
+        
         joinChatroom(username)
     }
     

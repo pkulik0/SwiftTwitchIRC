@@ -13,15 +13,15 @@ final class SwiftTwitchIRCTests: XCTestCase {
                                  onRoomStateChanged: printMsg,
                                  onClearChat: printMsg,
                                  onClearMessage: printMsg)
-        irc.joinChannel(channel: "hasanabi")
-
-        wait(for: [expectation], timeout: 360000.0)
+        irc.joinChatroom("hasanabi")
+        
+        wait(for:  [expectation], timeout: 360000.0)
     }
     
     func printMsg<T>(msg: T) {
 //        print(msg)
     }
     func printChatMsg(msg: SwiftTwitchIRC.ChatMessage) {
-//        print("(\(msg.chatroom)) \(msg.userName): \(msg.text)")
+        print("(\(msg.chatroom)) \(msg.displayableName): \(msg.text)")
     }
 }

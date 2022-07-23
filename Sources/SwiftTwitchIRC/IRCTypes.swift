@@ -8,7 +8,6 @@
 @available(macOS 10.15, iOS 13.0, *)
 protocol IRCMessage: Identifiable, Hashable, Codable {
     var id: String { get set }
-    var command: String { get set }
 }
 
 @available(macOS 10.15, iOS 13.0, *)
@@ -22,12 +21,21 @@ protocol IRCUserInfo: Identifiable, Hashable, Codable {
 public extension SwiftTwitchIRC {
     struct ChatMessage: IRCMessage, IRCUserInfo {
         public var id: String
-        public var command: String
-        
         public var chatroom: String
         
         public var userID: String
         public var userName: String
+        public var userLogin: String
+        
+        public var displayableName: String {
+            get {
+                if userName.lowercased() != userLogin {
+                    return "\(userName) (\(userLogin))"
+                }
+                return userLogin
+            }
+        }
+        
         public var badges: [String: String]
         public var color: String
         
@@ -46,15 +54,8 @@ public extension SwiftTwitchIRC {
         }
     }
     
-    struct EmptyMessage: IRCMessage {
-        public var id: String
-        public var command: String
-    }
-    
     struct UserState: IRCMessage, IRCUserInfo {
         public var id: String
-        public var command: String
-        
         public var chatroom: String
         
         public var userName: String
@@ -65,8 +66,6 @@ public extension SwiftTwitchIRC {
     
     struct RoomState: IRCMessage {
         public var id: String
-        public var command: String
-        
         public var chatroom: String
         
         public var isEmoteOnly: Bool?
@@ -78,8 +77,6 @@ public extension SwiftTwitchIRC {
     
     struct ClearChat: IRCMessage {
         public var id: String
-        public var command: String
-        
         public var chatroom: String
         
         public var targetUserID: String?
@@ -88,8 +85,6 @@ public extension SwiftTwitchIRC {
     
     struct ClearMessage: IRCMessage {
         public var id: String
-        public var command: String
-        
         public var chatroom: String
         
         public var executorName: String
@@ -98,7 +93,6 @@ public extension SwiftTwitchIRC {
     
     struct WhisperMessage: IRCMessage {
         public var id: String
-        public var command: String
         
         public var fromUserName: String
         public var badges: [String: String]
@@ -109,8 +103,6 @@ public extension SwiftTwitchIRC {
     
     struct HostInfo: IRCMessage {
         public var id: String
-        public var command: String
-        
         public var chatroom: String
         
         public var hostedChannel: String
@@ -119,9 +111,9 @@ public extension SwiftTwitchIRC {
     
     struct UserEvent: IRCMessage, IRCUserInfo {
         public var id: String
-        public var command: String
         
         public var userName: String
+        public var userLogin: String
         public var badges: [String : String]
         public var color: String
         
@@ -162,8 +154,6 @@ public extension SwiftTwitchIRC {
             
             public var recipientName: String
             public var recipientID: String
-            
-            public var senderName: String
         }
         
         public struct RaidInfo: Hashable, Codable {
@@ -181,9 +171,7 @@ public extension SwiftTwitchIRC {
     }
     
     struct Notice: IRCMessage {
-        public var id: String
-        public var command: String
-        
+        public var id: String 
         public var chatroom: String
         
         public var type: NoticeType

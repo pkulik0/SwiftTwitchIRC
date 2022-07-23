@@ -16,9 +16,9 @@ public class SwiftTwitchIRC {
     var connection: URLSessionStreamTask
     
     let host = "irc.chat.twitch.tv"
-    let port = 6667
+    let port = 6697
     
-    var chatrooms: [String] = []
+    var chatrooms: Set<String> = []
     var buffer: String = ""
     
     var onMessageReceived: ((ChatMessage) -> Void)?
@@ -57,64 +57,62 @@ public class SwiftTwitchIRC {
         self.onRoomStateChanged = onRoomStateChanged
         self.onClearChat = onClearChat
         self.onClearMessage = onClearMessage
-        
         self.session = session
+        
         self.connection = session.streamTask(withHostName: host, port: port)
+        connection.startSecureConnection()
         
-        connection.resume()
-        startParsingWorker()
-        read()
         connect()
-        
-        joinChannel(channel: username)
+        read()
     }
-    
-    func connect() {
+
+    private func connect() {
+        connection.resume()
+        Task {
+            startWorker()
+        }
+
         send("PASS oauth:\(token)")
         send("NICK \(username)")
         send("CAP REQ :twitch.tv/commands twitch.tv/tags")
+        joinChatroom(username)
     }
     
-    public func disconnect() {
-        connection.cancel()
-    }
-    
-    func startParsingWorker() {
-        Task {
-            while true {
-                guard let range = buffer.range(of: "\r\n") else {
-                    usleep(1000)
-                    continue
-                }
-                let line = String(buffer[..<range.lowerBound])
-                buffer = String(buffer[range.upperBound...])
-                
-                if line.starts(with: "PING") {
-                    send(line.replacingOccurrences(of: "PING", with: "PONG"))
-                    continue
-                }
-                parseMessage(line)
+    private func startWorker() {
+        while true {
+            guard let index = buffer.firstIndex(of: "\r\n") else {
+                usleep(100000)
+                continue
             }
+            
+            let line = String(buffer[..<index])
+            buffer = String(buffer[buffer.index(after: index)...])
+            
+            if line.starts(with: "PING") {
+                send(line.replacingOccurrences(of: "PING", with: "PONG"))
+                continue
+            }
+            parseMessage(line)
         }
     }
     
-    func read() {
-        connection.readData(ofMinLength: 0, maxLength: 9999, timeout: 0) { [self] data, isEOF, error in
-            defer { read() }
-            
-            if let error = error {
-                print(error.localizedDescription)
+    private func read() {
+        connection.readData(ofMinLength: 0, maxLength: 65535, timeout: 0) { [self] data, isEOF, error in
+            if error != nil {
                 return
             }
             
             guard let data = data, let message = String(data: data, encoding: .utf8) else {
                 return
             }
+            
             buffer += message
+            read()
         }
     }
     
-    func send(_ message: String) {
+    private func send(_ message: String) {
+        print("send: \(message)")
         guard let data = "\(message)\r\n".data(using: .utf8) else {
             return
         }
@@ -139,13 +137,21 @@ public class SwiftTwitchIRC {
         send("PRIVMSG #\(userName) :/w \(userName) \(message)")
     }
     
-    public func joinChannel(channel: String) {
-        send("JOIN #\(channel)")
-        chatrooms.append(channel)
+    public func joinChatroom(_ name: String) {
+        send("JOIN #\(name)")
+        chatrooms.insert(name)
     }
     
-    public func leaveChannel(channel: String) {
-        send("PART #\(channel)")
-        chatrooms.removeAll(where: { $0 == channel })
+    public func joinChatrooms(_ names: Set<String>) {
+        names.forEach({ joinChatroom($0) })
+    }
+    
+    public func leaveChatroom(_ name: String) {
+        send("PART #\(name)")
+        chatrooms.remove(name)
+    }
+    
+    public func leaveChatrooms(_ names: Set<String>) {
+        names.forEach({ leaveChatroom($0) })
     }
 }

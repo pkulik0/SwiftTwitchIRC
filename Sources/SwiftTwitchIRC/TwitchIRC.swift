@@ -20,9 +20,6 @@ public class SwiftTwitchIRC {
     
     private var chatrooms: Set<String> = []
     
-    internal var buffer: String = ""
-    internal var bufferLock = NSLock()
-    
     internal var onMessageReceived: ((ChatMessage) -> Void)?
     internal var onWhisperReceived: ((Whisper) -> Void)?
     
@@ -70,15 +67,10 @@ public class SwiftTwitchIRC {
 
     private func connect() {
         connection.resume()
-        Task {
-            startParser()
-        }
 
         send("CAP REQ :twitch.tv/commands twitch.tv/tags")
         send("PASS oauth:\(token)")
         send("NICK \(username)")
-        
-        joinChatroom(username)
     }
     
     private func read() {
@@ -91,9 +83,14 @@ public class SwiftTwitchIRC {
                 return
             }
             
-            bufferLock.lock()
-            buffer += message
-            bufferLock.unlock()
+            for line in message.split(separator: "\r\n").map({ String($0) }) {
+                if line.starts(with: "PING") {
+                    send(line.replacingOccurrences(of: "PING", with: "PONG"))
+                    continue
+                }
+                
+                parseMessage(line)
+            }
             
             read()
         }

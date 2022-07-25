@@ -9,37 +9,7 @@ import Foundation
 
 @available(macOS 10.15, iOS 13.0, *)
 extension SwiftTwitchIRC {
-    internal func startParser() {
-        while true {
-            guard let line = getLineFromBuffer() else {
-                usleep(100000)
-                continue
-            }
-            
-            if line.starts(with: "PING") {
-                send(line.replacingOccurrences(of: "PING", with: "PONG"))
-                continue
-            }
-            
-            parseMessage(line)
-        }
-    }
-    
-    private func getLineFromBuffer() -> String? {
-        bufferLock.lock()
-        defer { bufferLock.unlock() }
-        
-        guard let index = buffer.firstIndex(of: "\r\n") else {
-            return nil
-        }
-        
-        let line = String(buffer[..<index])
-        buffer = String(buffer[buffer.index(after: index)...])
-        
-        return line
-    }
-    
-    private func parseMessage(_ message: String) {
+    internal func parseMessage(_ message: String) {
         if message.first == ":" {
             return
         }

@@ -9,38 +9,40 @@ import Foundation
 
 @available(macOS 10.15, iOS 13.0, *)
 public class SwiftTwitchIRC {
-    var username: String
-    var token: String
+    private var username: String
+    private var token: String
     
-    var session: URLSession
-    var connection: URLSessionStreamTask
+    private var session: URLSession
+    private var connection: URLSessionStreamTask
     
-    let host = "irc.chat.twitch.tv"
-    let port = 6697
+    private let host = "irc.chat.twitch.tv"
+    private let port = 6697
     
-    var chatrooms: Set<String> = []
-    var buffer: String = ""
+    private var chatrooms: Set<String> = []
     
-    var onMessageReceived: ((ChatMessage) -> Void)?
-    var onWhisperReceived: ((WhisperMessage) -> Void)?
+    internal var buffer: String = ""
+    internal var bufferLock = NSLock()
     
-    var onNoticeReceived: ((Notice) -> Void)?
-    var onUserEvent: ((UserEvent) -> Void)?
+    internal var onMessageReceived: ((ChatMessage) -> Void)?
+    internal var onWhisperReceived: ((Whisper) -> Void)?
     
-    var onUserStateChanged: ((UserState) -> Void)?
-    var onRoomStateChanged: ((RoomState) -> Void)?
+    internal var onNoticeReceived: ((Notice) -> Void)?
+    internal var onUserNoticeReceived: ((UserNotice) -> Void)?
     
-    var onClearChat: ((ClearChat) -> Void)?
-    var onClearMessage: ((ClearMessage) -> Void)?
+    internal var onUserStateChanged: ((UserState) -> Void)?
+    internal var onRoomStateChanged: ((RoomState) -> Void)?
+    
+    internal var onClearChat: ((ClearChat) -> Void)?
+    internal var onClearMessage: ((ClearMessage) -> Void)?
     
     public init(
         username: String,
         token: String,
         session: URLSession = URLSession.shared,
         onMessageReceived: ((ChatMessage) -> Void)? = nil,
-        onWhisperReceived: ((WhisperMessage) -> Void)? = nil,
+        onWhisperReceived: ((Whisper) -> Void)? = nil,
         onNoticeReceived: ((Notice) -> Void)? = nil,
-        onUserEvent: ((UserEvent) -> Void)? = nil,
+        onUserNoticeReceived: ((UserNotice) -> Void)? = nil,
         onUserStateChanged: ((UserState) -> Void)? = nil,
         onRoomStateChanged: ((RoomState) -> Void)? = nil,
         onClearChat: ((ClearChat) -> Void)? = nil,
@@ -52,7 +54,7 @@ public class SwiftTwitchIRC {
         self.onMessageReceived = onMessageReceived
         self.onWhisperReceived = onWhisperReceived
         self.onNoticeReceived = onNoticeReceived
-        self.onUserEvent = onUserEvent
+        self.onUserNoticeReceived = onUserNoticeReceived
         self.onUserStateChanged = onUserStateChanged
         self.onRoomStateChanged = onRoomStateChanged
         self.onClearChat = onClearChat
@@ -69,7 +71,7 @@ public class SwiftTwitchIRC {
     private func connect() {
         connection.resume()
         Task {
-            startWorker()
+            startParser()
         }
 
         send("CAP REQ :twitch.tv/commands twitch.tv/tags")
@@ -77,24 +79,6 @@ public class SwiftTwitchIRC {
         send("NICK \(username)")
         
         joinChatroom(username)
-    }
-    
-    private func startWorker() {
-        while true {
-            guard let index = buffer.firstIndex(of: "\r\n") else {
-                usleep(100000)
-                continue
-            }
-            
-            let line = String(buffer[..<index])
-            buffer = String(buffer[buffer.index(after: index)...])
-            
-            if line.starts(with: "PING") {
-                send(line.replacingOccurrences(of: "PING", with: "PONG"))
-                continue
-            }
-            parseMessage(line)
-        }
     }
     
     private func read() {
@@ -107,13 +91,15 @@ public class SwiftTwitchIRC {
                 return
             }
             
+            bufferLock.lock()
             buffer += message
+            bufferLock.unlock()
+            
             read()
         }
     }
     
-    private func send(_ message: String) {
-        print("send: \(message)")
+    internal func send(_ message: String) {
         guard let data = "\(message)\r\n".data(using: .utf8) else {
             return
         }

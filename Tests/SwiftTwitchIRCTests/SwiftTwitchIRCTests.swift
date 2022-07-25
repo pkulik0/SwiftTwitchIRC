@@ -6,11 +6,15 @@ final class SwiftTwitchIRCTests: XCTestCase {
     let token = ""
     
     func debugPrint<T>(msg: T) {
-        print(msg)
+//        print(msg)
+    }
+    
+    func printUserNotice(msg: SwiftTwitchIRC.UserNotice) {
+//        print("\n\n\(msg.type) \nsysMsg: \(msg.systemMessage) \ncontent: \(msg.text)")
     }
     
     func printChatMsg(msg: SwiftTwitchIRC.ChatMessage) {
-        print("(\(msg.chatroom)) \(msg.displayableName): \(msg.text)")
+        print(".", terminator: "")
     }
     
     override func setUpWithError() throws {
@@ -24,12 +28,11 @@ final class SwiftTwitchIRCTests: XCTestCase {
                                  onMessageReceived: printChatMsg,
                                  onWhisperReceived: debugPrint,
                                  onNoticeReceived: debugPrint,
-                                 onUserEvent: debugPrint,
+                                 onUserNoticeReceived: printUserNotice,
                                  onUserStateChanged: debugPrint,
                                  onRoomStateChanged: debugPrint,
                                  onClearChat: debugPrint,
                                  onClearMessage: debugPrint)
-        irc.joinChatroom("hasanabi")
-        sleep(1000)
+        sleep(3600 * 24)
     }
 }

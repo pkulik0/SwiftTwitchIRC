@@ -1,177 +1,25 @@
 //
-//  IRCTypes.swift
+//  Notice.swift
 //  
 //
-//  Created by pkulik0 on 19/07/2022.
+//  Created by pkulik0 on 25/07/2022.
 //
 
 @available(macOS 10.15, iOS 13.0, *)
-protocol IRCMessage: Identifiable, Hashable, Codable {
-    var id: String { get set }
-}
-
-@available(macOS 10.15, iOS 13.0, *)
-protocol IRCUserInfo: Identifiable, Hashable, Codable {
-    var userName: String { get set }
-    var badges: [String: String] { get set }
-    var color: String { get set }
-}
-
-@available(macOS 10.15, iOS 13.0, *)
-public extension SwiftTwitchIRC {
-    struct ChatMessage: IRCMessage, IRCUserInfo {
-        public var id: String
-        public var chatroom: String
-        
-        public var userID: String
-        public var userName: String
-        public var userLogin: String
-        
-        public var displayableName: String {
-            get {
-                if userName.lowercased() != userLogin {
-                    return "\(userName) (\(userLogin))"
-                }
-                return userLogin
-            }
+extension SwiftTwitchIRC {
+    internal func handleNotice(id: String, chatroom: String, tags: [String: String], content: String) {
+        guard let onNoticeReceived = onNoticeReceived,
+              let noticeString = tags["msg-id"],
+              let noticeMessage = Notice.NoticeType(rawValue: noticeString)
+        else {
+            return
         }
         
-        public var badges: [String: String]
-        public var color: String
-        
-        public var text: String
-        
-        public var replyParent: ReplyParent?
-        
-        public struct ReplyParent: Identifiable, Hashable, Codable {
-            public var id: String
-            
-            public var userID: String
-            public var userName: String
-            public var userLogin: String
-            
-            public var text: String
-        }
+        onNoticeReceived(Notice(id: id, chatroom: chatroom, type: noticeMessage, targetUserID: tags["target-user-id"], text: content))
     }
     
-    struct UserState: IRCMessage, IRCUserInfo {
+    public struct Notice: IRCMessage {
         public var id: String
-        public var chatroom: String
-        
-        public var userName: String
-        public var color: String
-        public var badges: [String: String]
-        public var emoteSets: [String]
-    }
-    
-    struct RoomState: IRCMessage {
-        public var id: String
-        public var chatroom: String
-        
-        public var isEmoteOnly: Bool?
-        public var isSubsOnly: Bool?
-        public var followersOnlyDuration: Int?
-        public var slowModeDuration: Int?
-        public var isInUniqueMode: Bool?
-    }
-    
-    struct ClearChat: IRCMessage {
-        public var id: String
-        public var chatroom: String
-        
-        public var targetUserID: String?
-        public var banDuration: Int?
-    }
-    
-    struct ClearMessage: IRCMessage {
-        public var id: String
-        public var chatroom: String
-        
-        public var executorName: String
-        public var targetMessageID: String
-    }
-    
-    struct WhisperMessage: IRCMessage {
-        public var id: String
-        
-        public var fromUserName: String
-        public var badges: [String: String]
-        public var color: String
-
-        public var text: String
-    }
-    
-    struct HostInfo: IRCMessage {
-        public var id: String
-        public var chatroom: String
-        
-        public var hostedChannel: String
-        public var viewerCount: Int
-    }
-    
-    struct UserEvent: IRCMessage, IRCUserInfo {
-        public var id: String
-        
-        public var userName: String
-        public var userLogin: String
-        public var badges: [String : String]
-        public var color: String
-        
-        public var type: EventType
-        
-        public var subInfo: SubInfo?
-        public var giftInfo: GiftInfo?
-        public var raidInfo: RaidInfo?
-        public var ritualInfo: RitualInfo?
-        public var earnedBitsBadge: String?
-        
-        public enum EventType: String, Codable {
-            case sub, resub, subgift, raid, unraid, ritual
-            case giftPaidUpgrade = "giftpaidupgrade"
-            case rewardGift = "rewardgift"
-            case anonGiftPaidUpgrade = "anongiftpaidupgrade"
-            case bitsBadgeTier = "bitsbadgetier"
-        }
-        
-        public enum SubType: String, Codable {
-            case prime = "Prime"
-            case tier1 = "1000"
-            case tier2 = "2000"
-            case tier3 = "3000"
-        }
-        
-        public struct SubInfo: Hashable, Codable {
-            public var cumulativeMonths: Int
-            public var currentStreak: Int?
-            public var subType: SubType
-            
-        }
-        
-        public struct GiftInfo: Hashable, Codable {
-            public var cumulativeMonths: Int
-            public var giftedMonths: Int
-            public var subType: SubType
-            
-            public var recipientName: String
-            public var recipientID: String
-        }
-        
-        public struct RaidInfo: Hashable, Codable {
-            public var broadcasterName: String
-            public var viewerCount: Int
-        }
-        
-        public struct RitualInfo: Hashable, Codable {
-            public var type: RitualType
-            
-            public enum RitualType: String, Codable {
-                case newChatter = "new_chatter"
-            }
-        }
-    }
-    
-    struct Notice: IRCMessage {
-        public var id: String 
         public var chatroom: String
         
         public var type: NoticeType

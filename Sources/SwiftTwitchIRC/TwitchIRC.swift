@@ -117,8 +117,8 @@ public class SwiftTwitchIRC {
         send("@reply-parent-msg-id=\(replyParent.id) PRIVMSG #\(replyParent.chatroom) :\(message)")
     }
     
-    public func sendWhisper(message: String, to userName: String) {
-        send("PRIVMSG #\(userName) :/w \(userName) \(message)")
+    public func sendWhisper(message: String, to recipient: String) {
+        send("PRIVMSG #\(recipient) :/w \(recipient) \(message)")
     }
     
     public func joinChatroom(_ name: String) {

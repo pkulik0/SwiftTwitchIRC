@@ -18,7 +18,7 @@ extension SwiftTwitchIRC {
         }
         
         let badges = parseBadges(badgesString)
-        onUserStateChanged(UserState(id: id, chatroom: chatroom, userName: userName, color: color, badges: badges, emoteSets: emoteSets))
+        onUserStateChanged(UserState(id: id, chatroom: chatroom, userName: userName, color: color, badges: badges, emoteSets: emoteSets, messageID: tags["id"]))
     }
     
     public struct UserState: IRCMessage, IRCUserInfo {
@@ -29,5 +29,7 @@ extension SwiftTwitchIRC {
         public var color: String
         public var badges: [String: String]
         public var emoteSets: [String]
+        
+        public var messageID: String?
     }
 }

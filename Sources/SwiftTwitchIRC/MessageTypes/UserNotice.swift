@@ -24,11 +24,12 @@ extension SwiftTwitchIRC {
         systemMessage = systemMessage.replacingOccurrences(of: "\\s", with: " ")
         let badges = parseBadges(badgesString)
         
-        onUserNoticeReceived(UserNotice(id: id, userName: userName, userLogin: userLogin, badges: badges, color: color, type: type, systemMessage: systemMessage, text: content))
+        onUserNoticeReceived(UserNotice(id: id, chatroom: chatroom, userName: userName, userLogin: userLogin, badges: badges, color: color, type: type, systemMessage: systemMessage, text: content))
     }
     
     public struct UserNotice: IRCMessage, IRCUserInfo {
         public var id: String
+        public var chatroom: String
         
         public var userName: String
         public var userLogin: String

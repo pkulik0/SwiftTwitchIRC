@@ -57,7 +57,7 @@ extension SwiftTwitchIRC {
             }
         }
         
-        internal init(id: String, chatroom: String, userID: String, userName: String, userLogin: String, badges: [String: String], color: String, text: String, replyParent: ReplyParent? = nil) {
+        public init(id: String, chatroom: String, userID: String, userName: String, userLogin: String, badges: [String: String], color: String, text: String, replyParent: ReplyParent? = nil) {
             self.id = id
             self.chatroom = chatroom
             

@@ -55,6 +55,31 @@ extension SwiftTwitchIRC {
             }
         }
         
+        internal init(id: String, chatroom: String, userID: String, userName: String, userLogin: String, badges: [String: String], color: String, text: String, replyParent: ReplyParent? = nil) {
+            self.id = id
+            self.chatroom = chatroom
+            
+            self.userID = userID
+            self.userName = userName
+            self.userLogin = userLogin
+            self.badges = badges
+            self.color = color
+            
+            self.text = text
+            self.replyParent = replyParent
+        }
+        
+        public init(text: String, userState: UserState) {
+            self.id = ""
+            self.chatroom = userState.chatroom
+            self.userID = ""
+            self.userName = userState.userName
+            self.userLogin = userState.userName
+            self.badges = userState.badges
+            self.color = userState.color
+            self.text = text
+        }
+        
         public struct ReplyParent: Identifiable, Hashable, Codable {
             public var id: String
             

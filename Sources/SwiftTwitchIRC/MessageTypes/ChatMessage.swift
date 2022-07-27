@@ -5,6 +5,8 @@
 //  Created by pkulik0 on 25/07/2022.
 //
 
+import Foundation
+
 @available(macOS 10.15, iOS 13.0, *)
 extension SwiftTwitchIRC {
     internal func handlePrivMsg(info: String, chatroom: String, tags: [String: String], content: String) {
@@ -70,7 +72,7 @@ extension SwiftTwitchIRC {
         }
         
         public init(text: String, userState: UserState) {
-            self.id = ""
+            self.id = UUID().uuidString
             self.chatroom = userState.chatroom
             self.userID = ""
             self.userName = userState.userName

@@ -25,9 +25,10 @@ extension SwiftTwitchIRC {
         var chatroom = String(messageParts[3].dropFirst())
         var content = ""
         
-        if let range = message.range(of: "#\(chatroom)"), range.upperBound != message.endIndex {
-            let startIndex = message.index(range.upperBound, offsetBy: 2)
-            content = String(message[startIndex...])
+        let ircInfoLength = tags.count + info.count + command.count + chatroom.count + 8
+        if message.count > ircInfoLength {
+            let contentIndex = message.index(message.startIndex, offsetBy: ircInfoLength)
+            content = String(message[contentIndex...])
         }
         
         let fallbackID = UUID().uuidString

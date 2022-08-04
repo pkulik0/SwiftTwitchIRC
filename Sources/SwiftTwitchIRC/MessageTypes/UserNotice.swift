@@ -13,8 +13,7 @@ extension SwiftTwitchIRC {
               let userName = tags["display-name"],
               let userLogin = tags["login"],
               let badgesString = tags["badges"],
-              let typeString = tags["msg-id"],
-              let type = UserNotice.EventType(rawValue: typeString),
+              let type = tags["msg-id"],
               var systemMessage = tags["system-msg"],
               let color = tags["color"]
         else {
@@ -36,19 +35,8 @@ extension SwiftTwitchIRC {
         public var badges: [String : String]
         public var color: String
         
-        public var type: EventType
+        public var type: String
         public var systemMessage: String
         public var text: String
-        
-        public enum EventType: String, Codable {
-            case sub, resub, subgift, raid, unraid, ritual, announcement
-            case communityPayForward = "communitypayforward"
-            case giftPaidUpgrade = "giftpaidupgrade"
-            case primePaidUpgrade = "primepaidupgrade"
-            case subMysteryGift = "submysterygift"
-            case rewardGift = "rewardgift"
-            case anonGiftPaidUpgrade = "anongiftpaidupgrade"
-            case bitsBadgeTier = "bitsbadgetier"
-        }
     }
 }

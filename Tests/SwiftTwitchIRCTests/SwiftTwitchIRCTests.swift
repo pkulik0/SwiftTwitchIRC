@@ -2,19 +2,19 @@ import XCTest
 @testable import SwiftTwitchIRC
 
 final class SwiftTwitchIRCTests: XCTestCase {
-    let username = ""
-    let token = ""
+    let username = "qurrie"
+    let token = "3184l994nsn2lgpq8gaup3oe3xifty"
     
     func debugPrint<T>(msg: T) {
-//        print(msg)
+        print(msg)
     }
     
     func printUserNotice(msg: SwiftTwitchIRC.UserNotice) {
-//        print("\n\n\(msg.type) \nsysMsg: \(msg.systemMessage) \ncontent: \(msg.text)")
+        print("\n\n\(msg.type) \nsysMsg: \(msg.systemMessage) \ncontent: \(msg.text)")
     }
     
     func printChatMsg(msg: SwiftTwitchIRC.ChatMessage) {
-        print(".", terminator: "")
+        print("(\(msg.chatroom)) \(msg.displayableName): \(msg.text)")
     }
     
     override func setUpWithError() throws {

@@ -21,8 +21,5 @@ let package = Package(
         .target(
             name: "SwiftTwitchIRC",
             dependencies: []),
-        .testTarget(
-            name: "SwiftTwitchIRCTests",
-            dependencies: ["SwiftTwitchIRC"]),
     ]
 )

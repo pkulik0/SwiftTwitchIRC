@@ -2,8 +2,8 @@ import XCTest
 @testable import SwiftTwitchIRC
 
 final class SwiftTwitchIRCTests: XCTestCase {
-    let username = "qurrie"
-    let token = "3184l994nsn2lgpq8gaup3oe3xifty"
+    let username = "<username>"
+    let token = "<oauth-token>"
     
     func debugPrint<T>(msg: T) {
         print(msg)
